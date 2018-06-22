@@ -108,7 +108,9 @@ var InputManager = new Class({
          * @type {object}
          * @since 3.10.0
          */
-        this.domCallbacks = { up: [], down: [], move: [], upOnce: [], downOnce: [], moveOnce: [] };
+        this.domCallbacks = { up: [], down: [], move: [], upOnce: [], downOnce: [], moveOnce: [], scroll: [], scrollOnce: [] };
+
+        this._hasScrollCallback = false;
 
         /**
          * Are there any up callbacks defined?
@@ -469,6 +471,10 @@ var InputManager = new Class({
                     mouse.up(event, time);
                     break;
 
+                case CONST.MOUSE_SCROLL:
+                    mouse.scroll(event, time)
+                    break
+
                 case CONST.TOUCH_START:
                     this.startPointer(event, time);
                     break;
@@ -497,6 +503,10 @@ var InputManager = new Class({
      */
     postUpdate: function ()
     {
+        if (this.mousePointer) {
+            this.mousePointer.clearScrollState()
+        }
+
         if (this._setCursor === 1)
         {
             this.canvas.style.cursor = this._customCursor;
@@ -509,7 +519,7 @@ var InputManager = new Class({
 
     /**
      * Tells the Input system to set a custom cursor.
-     * 
+     *
      * This cursor will be the default cursor used when interacting with the game canvas.
      *
      * If an Interactive Object also sets a custom cursor, this is the cursor that is reset after its use.
@@ -519,7 +529,7 @@ var InputManager = new Class({
      * ```javascript
      * this.input.setDefaultCursor('url(assets/cursors/sword.cur), pointer');
      * ```
-     * 
+     *
      * Please read about the differences between browsers when it comes to the file formats and sizes they support:
      *
      * https://developer.mozilla.org/en-US/docs/Web/CSS/cursor
@@ -529,7 +539,7 @@ var InputManager = new Class({
      *
      * @method Phaser.Input.InputManager#setDefaultCursor
      * @since 3.10.0
-     * 
+     *
      * @param {string} cursor - The CSS to be used when setting the default cursor.
      */
     setDefaultCursor: function (cursor)
@@ -544,7 +554,7 @@ var InputManager = new Class({
 
     /**
      * Called by the InputPlugin when processing over and out events.
-     * 
+     *
      * Tells the Input Manager to set a custom cursor during its postUpdate step.
      *
      * https://developer.mozilla.org/en-US/docs/Web/CSS/cursor
@@ -552,7 +562,7 @@ var InputManager = new Class({
      * @method Phaser.Input.InputManager#setCursor
      * @private
      * @since 3.10.0
-     * 
+     *
      * @param {Phaser.Input.InteractiveObject} interactiveObject - The Interactive Object that called this method.
      */
     setCursor: function (interactiveObject)
@@ -566,13 +576,13 @@ var InputManager = new Class({
 
     /**
      * Called by the InputPlugin when processing over and out events.
-     * 
+     *
      * Tells the Input Manager to clear the hand cursor, if set, during its postUpdate step.
      *
      * @method Phaser.Input.InputManager#resetCursor
      * @private
      * @since 3.10.0
-     * 
+     *
      * @param {Phaser.Input.InteractiveObject} interactiveObject - The Interactive Object that called this method.
      */
     resetCursor: function (interactiveObject)
@@ -895,6 +905,14 @@ var InputManager = new Class({
         }
     },
 
+    queueMouseScroll: function(event) {
+        this.queue.push(CONST.MOUSE_SCROLL, event)
+        if (this._hasScrollCallback) {
+            var callbacks = this.domCallbacks
+            this._hasScrollCallback = this.processDomCallbacks(callbacks.scrollOnce, callbacks.scroll, event)
+        }
+    },
+
     /**
      * Adds a callback to be invoked whenever the native DOM `mouseup` or `touchend` events are received.
      * By setting the `isOnce` argument you can control if the callback is called once,
@@ -1037,6 +1055,18 @@ var InputManager = new Class({
         this._hasMoveCallback = true;
 
         return this;
+    },
+
+    addScrollCallback: function(cb, isOnce) {
+        if (isOnce === undefined) { isOnce = false }
+        if (isOnce) {
+            this.domCallbacks.scrollOnce.push(cb)
+        } else {
+            this.domCallbacks.scroll.push(cb)
+        }
+
+        this._hasScrollCallback = true
+        return this
     },
 
     /**

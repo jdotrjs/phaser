@@ -13,9 +13,9 @@ var Features = require('../../device/Features');
 /**
  * @classdesc
  * The Mouse Manager is a helper class that belongs to the Input Manager.
- * 
+ *
  * Its role is to listen for native DOM Mouse Events and then pass them onto the Input Manager for further processing.
- * 
+ *
  * You do not need to create this class directly, the Input Manager will create an instance of it automatically.
  *
  * @class MouseManager
@@ -117,9 +117,9 @@ var MouseManager = new Class({
 
     /**
      * Attempts to disable the context menu from appearing if you right-click on the browser.
-     * 
+     *
      * Works by listening for the `contextmenu` event and prevent defaulting it.
-     * 
+     *
      * Use this if you need to enable right-button mouse support in your game, and the browser
      * menu keeps getting in the way.
      *
@@ -270,6 +270,18 @@ var MouseManager = new Class({
         }
     },
 
+    onMouseWheel: function(event) {
+        if (event.defaultPrevented || !this.enabled) {
+            return
+        }
+
+        this.manager.queueMouseScroll(event)
+
+        if (this.capture) {
+            event.preventDefault()
+        }
+    },
+
     /**
      * Starts the Mouse Event listeners running.
      * This is called automatically and does not need to be manually invoked.
@@ -289,12 +301,14 @@ var MouseManager = new Class({
             target.addEventListener('mousemove', this.onMouseMove.bind(this), nonPassive);
             target.addEventListener('mousedown', this.onMouseDown.bind(this), nonPassive);
             target.addEventListener('mouseup', this.onMouseUp.bind(this), nonPassive);
+            target.addEventListener('wheel', this.onMouseWheel.bind(this), nonPassive);
         }
         else
         {
             target.addEventListener('mousemove', this.onMouseMove.bind(this), passive);
             target.addEventListener('mousedown', this.onMouseDown.bind(this), passive);
             target.addEventListener('mouseup', this.onMouseUp.bind(this), passive);
+            target.addEventListener('wheel', this.onMouseWheel.bind(this), passive);
         }
 
         if (Features.pointerLock)

@@ -66,7 +66,7 @@ var Pointer = new Class({
 
         /**
          * The camera the Pointer interacted with during its last update.
-         * 
+         *
          * A Pointer can only ever interact with one camera at once, which will be the top-most camera
          * in the list should multiple cameras be positioned on-top of each other.
          *
@@ -84,7 +84,7 @@ var Pointer = new Class({
          * 4: Wheel button or middle button
          * 8: 4th button (typically the "Browser Back" button)
          * 16: 5th button (typically the "Browser Forward" button)
-         * 
+         *
          * For a mouse configured for left-handed use, the button actions are reversed.
          * In this case, the values are read from right to left.
          *
@@ -248,6 +248,8 @@ var Pointer = new Class({
          */
         this.justUp = false;
 
+        this.justScrolled = true;
+
         /**
          * Is this Pointer considered as being "just moved" or not?
          *
@@ -350,9 +352,27 @@ var Pointer = new Class({
         this.justDown = false;
         this.justUp = false;
         this.justMoved = false;
+        this.justScrolled = false;
 
         this.movementX = 0;
         this.movementY = 0;
+
+        this.clearScrollState()
+    },
+
+    clearScrollState: function() {
+        this.netScrollX = 0
+        this.netScrollY = 0
+        this.netScrollZ = 0
+        this.scrollXPos = 0
+        this.scrollXNeg = 0
+        this.scrollYPos = 0
+        this.scrollYNeg = 0
+        this.scrollZPos = 0
+        this.scrollZNeg = 0
+        this.deltaX = 0
+        this.deltaY = 0
+        this.deltaZ = 0
     },
 
     /**
@@ -469,6 +489,37 @@ var Pointer = new Class({
         this.wasTouch = false;
     },
 
+    scroll: function (event) {
+        if (event.buttons) {
+            this.buttons = event.buttons
+        }
+        this.justScrolled = true
+        this.manager.transformPointer(this, event.pageX, event.pageY)
+        const dx = event.deltaX || 0
+        const sx = Math.sign(dx)
+        const dy = event.deltaY || 0
+        const sy = Math.sign(dy)
+        const dz = event.deltaZ || 0
+        const sz = Math.sign(dz)
+
+        this.netScrollX += sx
+        this.scrollXPos += sx === 1 ? 1 : 0
+        this.scrollXNeg += sx === -1 ? 1 : 0
+        this.netScrollY += sy
+        this.scrollYPos += sy === 1 ? 1 : 0
+        this.scrollYNeg += sy === -1 ? 1 : 0
+        this.netScrollZ += sz
+        this.scrollZPos += sz === 1 ? 1 : 0
+        this.scrollZNeg += sz === -1 ? 1 : 0
+
+        this.deltaX += event.deltaX
+        this.deltaY += event.deltaY
+        this.deltaZ += event.deltaZ
+
+        this.dirty = true
+        this.wasTouch = false
+    },
+
     /**
      * Internal method to handle a Touch Start Event.
      *
@@ -564,7 +615,7 @@ var Pointer = new Class({
         this.dirty = true;
 
         this.wasTouch = true;
-        
+
         this.active = false;
     },
 
